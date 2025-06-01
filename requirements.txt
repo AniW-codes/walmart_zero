@@ -1,0 +1,4 @@
+pandas
+sqlalchemy
+pymsql
+psycopg2
