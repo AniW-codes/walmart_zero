@@ -50,7 +50,7 @@ This project is an end-to-end data analysis solution designed to extract critica
 
 ### 8. Load Data into MySQL and PostgreSQL
    - **Set Up Connections**: Connect to MySQL and PostgreSQL using `sqlalchemy` and load the cleaned data into each database.
-   - **Table Creation**: Set up tables in both MySQL and PostgreSQL using Python SQLAlchemy to automate table creation and data insertion.
+   - **Table Creation**: Set up tables in  PostgreSQL using Python SQLAlchemy to automate table creation and data insertion.
    - **Verification**: Run initial SQL queries to confirm that the data has been loaded accurately.
 
 ### 9. SQL Analysis: Complex Queries and Business Problem Solving
@@ -65,19 +65,19 @@ This project is an end-to-end data analysis solution designed to extract critica
 ### 10. Project Publishing and Documentation
    - **Documentation**: Maintain well-structured documentation of the entire process in Markdown or a Jupyter Notebook.
    - **Project Publishing**: Publish the completed project on GitHub or any other version control platform, including:
-     - The `README.md` file (this document).
-     - Jupyter Notebooks (if applicable).
+     - The `README.md` file.
+     - Jupyter Notebooks.
      - SQL query scripts.
-     - Data files (if possible) or steps to access them.
+     - Data files or steps to access them.
 
 ---
 
 ## Requirements
 
-- **Python 3.8+**
-- **SQL Databases**: MySQL, PostgreSQL
+- **Python 3.13.3**
+- **SQL Databases**:  PostgreSQL
 - **Python Libraries**:
-  - `pandas`, `numpy`, `sqlalchemy`, `mysql-connector-python`, `psycopg2`
+  - `pandas`, `numpy`, `sqlalchemy`, `psql-connector-python`, `psycopg2`
 - **Kaggle API Key** (for data downloading)
 
 ## Getting Started
@@ -113,12 +113,223 @@ This section will include your analysis findings:
 - **Profitability**: Insights into the most profitable product categories and locations.
 - **Customer Behavior**: Trends in ratings, payment preferences, and peak shopping hours.
 
-## Future Enhancements
+## EDA
 
-Possible extensions to this project:
-- Integration with a dashboard tool (e.g., Power BI or Tableau) for interactive visualization.
-- Additional data sources to enhance analysis depth.
-- Automation of the data pipeline for real-time data ingestion and analysis.
+```sql
+
+select Count(*)
+from walmart;
+
+select distinct(payment_method)
+from walmart;
+
+select payment_method,
+		Count(payment_method)
+from walmart
+group by payment_method;
+
+--columnheaders must be in lower case
+select distinct(City) 
+from walmart;
+
+--DROP TABLE walmart;
+
+select COUNT(distinct(city))
+from walmart;
+
+
+
+
+```
+
+## Key Questions
+
+
+Q1 Find different payment methods, no of transactions and no of quantities sold. 
+
+```sql
+select payment_method, 
+		Count(*) as no_transactions,
+		SUM(quantity) as qty_sold_every_txn
+from walmart
+group by 1;
+
+
+```
+
+
+Q2 Identify the highest rated category in each branch while returning the branch name, category and avg rating
+
+```sql
+
+select * from
+			(select branch,
+					category,
+					(AVG(rating)),
+					RANK() Over(Partition by branch order by avg(rating) desc) as RNK
+			from walmart
+			group by 1,2)
+			--order by 1,3 desc
+where RNK = 1;
+
+```
+
+
+Q3 Identify the busiest weekday for each branch based on no of transactions
+
+```sql
+
+select date,
+		TO_DATE(date, 'DD/MM/YY') as formated_date
+from walmart
+
+-----extracting weekday from date--------
+select *,
+		TO_CHAR(TO_DATE(date, 'DD/MM/YY'),'Day') as formated_date
+from walmart
+
+
+-----------------------------------------
+Select * from 
+			(select branch,
+					TO_CHAR(TO_DATE(date, 'DD/MM/YY'),'Day') as weekday_name,
+					Count(invoice_id),
+					RANK() OVER(Partition by branch order by Count(invoice_id) DESC) as RNK
+			from walmart
+			group by 1,2)
+where RNK = 1
+
+
+```
+
+
+Q4 Calculate the total qty of items sold per payment method. List payment_method and total_qty.
+
+```sql
+
+select payment_method, 
+		SUM(quantity) as qty_sold_every_txn
+from walmart
+group by 1;
+
+
+```
+
+Q5 Determine the avg, min and max rating of category for each city. List city, category, avg rating, min rating and max rating.
+
+```sql
+
+select city,
+		category,
+		min(rating),
+		max(rating),
+		avg(rating)
+from walmart
+group by 1,2;
+
+
+```
+
+Q6 Calculate the total profit for each category by considering total_profit as (Unit price x quantity x profit margin)
+
+
+```sql
+select category,
+		ROUND(SUM(total::numeric * profit_margin::numeric),2) as profit_total
+from walmart
+group by 1
+order by 2 desc;
+
+
+
+```
+
+Q7 Determine the most common type of payment method for each branch.
+
+```sql
+
+select * from 
+			(select branch,
+					payment_method,
+					COUNT(*),
+					RANK() Over(Partition by branch order by COUNT(*) desc) as RNK
+			from walmart
+			group by 1,2
+			order by 1,3)
+where RNK = 1;
+
+
+```
+
+
+Q8 Categorise sales into groups of MORNING,AFTERNOON and EVENING based on times in the day. Find out each shift and number of invoices.
+
+```sql
+
+With CTE_time as
+					(select *,
+							CASE
+								When EXTRACT (HOUR FROM (time::time)) < 12 then 'Morning'
+								When EXTRACT (HOUR FROM (time::time)) BETWEEN 12 and 17 then 'Afternoon' 
+								else 'Evening'
+							 END as shift_split
+					from walmart)
+Select shift_split,
+		COUNT(*)
+from CTE_time
+group by 1;
+
+
+```
+
+
+Q9 Identify 5 branches with highest decrease ratio in revenue compared to previous year
+(Current yr is 2023, last year is 2022)
+
+```sql
+
+---setting logic for date field
+Select *,
+		date::date as formated_date,
+		EXTRACT(Year from date::date) as only_year
+from walmart
+
+
+-----------------------------
+
+
+with revenue_2022 as --2022 sales CTE
+		(
+				Select branch,
+						SUM(total) as total_revenue_2022
+				from walmart
+				where EXTRACT(Year from date::date) = 2022
+				group by branch
+		),
+revenue_2023 as --2023 sales CTE
+		(		Select branch,
+						SUM(total) as total_revenue_2023
+				from walmart
+				where EXTRACT(Year from date::date) = 2023
+				group by branch
+		)
+
+select revenue_2023.branch,
+		total_revenue_2022,
+		total_revenue_2023,
+		(total_revenue_2022 - total_revenue_2023)*100/total_revenue_2022 as ratio_in_percentage
+from revenue_2022 
+join revenue_2023
+	on revenue_2022.branch = revenue_2023.branch
+where total_revenue_2022 > total_revenue_2023
+order by ratio_in_percentage desc
+limit 5;
+
+```
+
+
+
+
 
 ---
 
