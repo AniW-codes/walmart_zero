@@ -329,6 +329,27 @@ limit 5;
 
 
 
+Determine the most common type of payment method for each branch and ultimately return the count of those top methods.
+
+```sql
+
+select payment_method,
+		Count(*)
+		from 
+		(select * from 
+			(select branch,
+					payment_method,
+					COUNT(*),
+					RANK() Over(Partition by branch order by COUNT(*) desc) as RNK
+			from walmart
+			group by 1,2
+			order by 1,3)
+where RNK = 1
+)
+group by payment_method;
+
+```
+
 
 
 ---
