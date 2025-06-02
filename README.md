@@ -1,4 +1,4 @@
-# Walmart Data Analysis: End-to-End SQL + Python Project P-9
+# Walmart Data Analysis: End-to-End SQL + Python Project
 
 ## Project Overview
 
@@ -62,7 +62,12 @@ This project is an end-to-end data analysis solution designed to extract critica
      - Profit margin analysis by branch and category.
    - **Documentation**: Keep clear notes of each query's objective, approach, and results.
 
-### 10. Project Publishing and Documentation
+### 11. Project Visualisations on Tableau
+
+**Tableau Analysis** : [Tableau Dashboard](https://public.tableau.com/views/Walmart_Analysis_17488998632900/Dashboard1?:language=en-US&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link)
+
+
+### 12. Project Publishing and Documentation
    - **Documentation**: Maintain well-structured documentation of the entire process in Markdown or a Jupyter Notebook.
    - **Project Publishing**: Publish the completed project on GitHub or any other version control platform, including:
      - The `README.md` file.
